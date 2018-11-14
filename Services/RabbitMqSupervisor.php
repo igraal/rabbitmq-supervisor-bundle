@@ -412,11 +412,14 @@ class RabbitMqSupervisor
                 $conf['user'] = $this->user;
             }
 
+            if ($this->getGeneralConsumerWorkerOption('user')) {
+                $programOptions['user'] = $this->getGeneralConsumerWorkerOption('user');
+            }
+
+
             $this->generateWorkerConfiguration(
                 $name,
-                array(
-                    sprintf('program:%s', $name) => $conf,
-                )
+                array(sprintf('program:%s', $name) => $programOptions)
             );
         }
     }
