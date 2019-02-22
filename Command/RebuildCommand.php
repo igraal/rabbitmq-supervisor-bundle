@@ -15,6 +15,7 @@ class RebuildCommand extends ContainerAwareCommand
             ->setName('rabbitmq-supervisor:rebuild')
             ->setDescription('Stop supervisord, rebuild supervisor worker configuration for all RabbitMQ consumer and start supervisord again.')
             ->addOption('wait-for-supervisord', null, InputOption::VALUE_NONE)
+            ->addOption('user', null, InputOption::VALUE_REQUIRED)
         ;
     }
 
@@ -23,6 +24,9 @@ class RebuildCommand extends ContainerAwareCommand
         /** @var \Phobetor\RabbitMqSupervisorBundle\Services\RabbitMqSupervisor $handler */
         $handler = $this->getContainer()->get('phobetor_rabbitmq_supervisor');
         $handler->setWaitForSupervisord((bool) $input->getOption('wait-for-supervisord'));
+        if ($input->hasOption('user')) {
+            $handler->setUser($input->getOption('user'));
+        }
         $handler->rebuild();
     }
 }
