@@ -62,6 +62,11 @@ class RabbitMqSupervisor
     /**
      * @var string
      */
+    private $sockFilePermissions;
+
+    /**
+     * @var string
+     */
     private $user;
 
     /** @var bool */
@@ -81,11 +86,12 @@ class RabbitMqSupervisor
      * @param array $batchConsumers
      * @param array $rpcServers
      * @param array $config
+     * @param $sockFilePermissions
      * @param string $kernelRootDir
      * @param string $environment
      * @param int|null $numprocOverride
      */
-    public function __construct(Supervisor $supervisor, array $paths, array $commands, $consumers, $multipleConsumers, $batchConsumers, $rpcServers, $config, $kernelRootDir, $environment, $numprocOverride = null)
+    public function __construct(Supervisor $supervisor, array $paths, array $commands, $consumers, $multipleConsumers, $batchConsumers, $rpcServers, $config, $sockFilePermissions, $kernelRootDir, $environment, $numprocOverride = null)
     {
         $this->supervisor = $supervisor;
         $this->paths = $paths;
@@ -95,6 +101,7 @@ class RabbitMqSupervisor
         $this->batchConsumers = $batchConsumers;
         $this->rpcServers = $rpcServers;
         $this->config = $config;
+        $this->sockFilePermissions = $sockFilePermissions;
         $this->rootDir = dirname($kernelRootDir);
         $this->environment = $environment;
 
@@ -313,7 +320,7 @@ class RabbitMqSupervisor
         $content = $configurationHelper->getConfigurationStringFromDataArray(array(
             'unix_http_server' => array(
                 'file' => $this->paths['sock_file'],
-                'chmod' => '0700'
+                'chmod' => $this->sockFilePermissions
             ),
             'supervisord' => array(
                 'logfile' => $this->paths['log_file'],
