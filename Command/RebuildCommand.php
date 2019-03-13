@@ -27,6 +27,9 @@ class RebuildCommand extends ContainerAwareCommand
         if ($input->hasOption('user')) {
             $handler->setUser($input->getOption('user'));
         }
+        $handler->setNoDaemon(
+            $this->getContainer()->getParameter('kernel.environment') === 'dev'
+        );
         $handler->rebuild();
     }
 }
