@@ -64,6 +64,9 @@ class RabbitMqSupervisor
      */
     private $user;
 
+    /** @var bool */
+    private $noDaemon;
+
     /**
      * Initialize Handler
      *
@@ -106,6 +109,14 @@ class RabbitMqSupervisor
     public function setUser($user)
     {
         $this->user = $user;
+    }
+
+    /**
+     * @param bool $noDaemon
+     */
+    public function setNoDaemon($noDaemon)
+    {
+        $this->noDaemon = (bool) $noDaemon;
     }
 
     /**
@@ -299,7 +310,8 @@ class RabbitMqSupervisor
             ),
             'supervisord' => array(
                 'logfile' => $this->paths['log_file'],
-                'pidfile' => $this->paths['pid_file']
+                'pidfile' => $this->paths['pid_file'],
+                'nodaemon' => $this->noDaemon ? '\'true\'' : '\'false\'',
             ),
             'rpcinterface:supervisor' => array(
                 'supervisor.rpcinterface_factory' => 'supervisor.rpcinterface:make_main_rpcinterface'
