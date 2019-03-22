@@ -311,7 +311,7 @@ class RabbitMqSupervisor
             'supervisord' => array(
                 'logfile' => $this->paths['log_file'],
                 'pidfile' => $this->paths['pid_file'],
-                'nodaemon' => $this->noDaemon ? '\'true\'' : '\'false\'',
+                'nodaemon' => $this->noDaemon ? 'true' : 'false',
             ),
             'rpcinterface:supervisor' => array(
                 'supervisor.rpcinterface_factory' => 'supervisor.rpcinterface:make_main_rpcinterface'
