@@ -2,12 +2,11 @@
 
 namespace Phobetor\RabbitMqSupervisorBundle\Command;
 
-use Symfony\Bundle\FrameworkBundle\Command\ContainerAwareCommand;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 
-class BuildCommand extends ContainerAwareCommand
+class BuildCommand extends AbstractRabbitMqSupervisorAwareCommand
 {
     protected function configure()
     {
@@ -21,15 +20,13 @@ class BuildCommand extends ContainerAwareCommand
 
     protected function execute(InputInterface $input, OutputInterface $output)
     {
-        /** @var \Phobetor\RabbitMqSupervisorBundle\Services\RabbitMqSupervisor $handler */
-        $handler = $this->getContainer()->get('phobetor_rabbitmq_supervisor');
-        $handler->setWaitForSupervisord((bool) $input->getOption('wait-for-supervisord'));
+        $this->rabbitMqSupervisor->setWaitForSupervisord((bool) $input->getOption('wait-for-supervisord'));
         if ($input->hasOption('user')) {
-            $handler->setUser($input->getOption('user'));
+            $this->rabbitMqSupervisor->setUser($input->getOption('user'));
         }
-        $handler->setNoDaemon(
+        $this->rabbitMqSupervisor->setNoDaemon(
             $this->getContainer()->getParameter('kernel.environment') === 'dev'
         );
-        $handler->build();
+        $this->rabbitMqSupervisor->build();
     }
 }
