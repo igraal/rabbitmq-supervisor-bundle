@@ -97,7 +97,9 @@ class RabbitMqSupervisor
         $this->config = $config;
         $this->rootDir = dirname($kernelRootDir);
         $this->environment = $environment;
-        $this->numprocOverride = $numprocOverride;
+
+        $numprocOverride = (int) $numprocOverride;
+        $this->numprocOverride = $numprocOverride > 0 ? $numprocOverride : null;
     }
 
     /**
@@ -397,7 +399,7 @@ class RabbitMqSupervisor
             $conf = array(
                 'command' => sprintf('%s %s %s --env=%s', $this->paths['php_executable'], $executablePath, $command, $this->environment),
                 'process_name' => '%(program_name)s%(process_num)02d',
-                'numprocs' => (int) (null === $this->numprocOverride ? $this->getConsumerWorkerOption($name, 'count') : $this->numprocOverride),
+                'numprocs' =>  null === $this->numprocOverride ? (int) $this->getConsumerWorkerOption($name, 'count') : $this->numprocOverride,
                 'startsecs' => $this->getConsumerWorkerOption($name, 'startsecs'),
                 'autorestart' => $this->transformBoolToString($this->getConsumerWorkerOption($name, 'autorestart')),
                 'stopsignal' => $this->getConsumerWorkerOption($name, 'stopsignal'),

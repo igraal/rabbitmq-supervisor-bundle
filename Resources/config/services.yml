@@ -17,7 +17,7 @@ services:
             - "%phobetor_rabbitmq_supervisor.config%"
             - "%kernel.root_dir%"
             - "%kernel.environment%"
-            - "%env(NUMPROC_OVERRIDE)%"
+            - "%env(int:NUMPROC_OVERRIDE)%"
 
     phobetor_rabbitmq_supervisor.supervisor_service:
         class: "%phobetor_rabbitmq_supervisor.supervisor_service.class%"
