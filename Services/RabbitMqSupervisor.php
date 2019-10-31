@@ -60,6 +60,17 @@ class RabbitMqSupervisor
     private $environment;
 
     /**
+     * @var string
+     */
+    private $user;
+
+    /** @var bool */
+    private $noDaemon;
+
+    /** @var int|null */
+    private $numprocOverride;
+
+    /**
      * Initialize Handler
      *
      * @param \Phobetor\RabbitMqSupervisorBundle\Services\Supervisor $supervisor
@@ -72,8 +83,9 @@ class RabbitMqSupervisor
      * @param array $config
      * @param string $kernelRootDir
      * @param string $environment
+     * @param int    $numprocOverride
      */
-    public function __construct(Supervisor $supervisor, array $paths, array $commands, $consumers, $multipleConsumers, $batchConsumers, $rpcServers, $config, $kernelRootDir, $environment)
+    public function __construct(Supervisor $supervisor, array $paths, array $commands, $consumers, $multipleConsumers, $batchConsumers, $rpcServers, $config, $kernelRootDir, $environment, $numprocOverride = null)
     {
         $this->supervisor = $supervisor;
         $this->paths = $paths;
@@ -85,6 +97,7 @@ class RabbitMqSupervisor
         $this->config = $config;
         $this->rootDir = dirname($kernelRootDir);
         $this->environment = $environment;
+        $this->numprocOverride = $numprocOverride;
     }
 
     /**
@@ -93,6 +106,22 @@ class RabbitMqSupervisor
     public function setWaitForSupervisord($waitForSupervisord)
     {
         $this->supervisor->setWaitForSupervisord($waitForSupervisord);
+    }
+
+    /**
+     * @param string $user
+     */
+    public function setUser($user)
+    {
+        $this->user = $user;
+    }
+
+    /**
+     * @param bool $noDaemon
+     */
+    public function setNoDaemon($noDaemon)
+    {
+        $this->noDaemon = (bool) $noDaemon;
     }
 
     /**
@@ -280,24 +309,25 @@ class RabbitMqSupervisor
     {
         $configurationHelper = new ConfigurationHelper();
         $content = $configurationHelper->getConfigurationStringFromDataArray(array(
-            'unix_http_server' => array(
-                'file' => $this->paths['sock_file'],
-                'chmod' => '0700'
-            ),
-            'supervisord' => array(
-                'logfile' => $this->paths['log_file'],
-                'pidfile' => $this->paths['pid_file']
-            ),
-            'rpcinterface:supervisor' => array(
-                'supervisor.rpcinterface_factory' => 'supervisor.rpcinterface:make_main_rpcinterface'
-            ),
-            'supervisorctl' => array(
-                'serverurl' => sprintf('unix://%s', $this->paths['sock_file'])
-            ),
-            'include' => array(
-                'files' => sprintf('%s*.conf', $this->paths['worker_configuration_directory'])
-            )
-        ));
+                                                                                 'unix_http_server' => array(
+                                                                                     'file' => $this->paths['sock_file'],
+                                                                                     'chmod' => '0700'
+                                                                                 ),
+                                                                                 'supervisord' => array(
+                                                                                     'logfile' => $this->paths['log_file'],
+                                                                                     'pidfile' => $this->paths['pid_file'],
+                                                                                     'nodaemon' => $this->noDaemon ? 'true' : 'false',
+                                                                                 ),
+                                                                                 'rpcinterface:supervisor' => array(
+                                                                                     'supervisor.rpcinterface_factory' => 'supervisor.rpcinterface:make_main_rpcinterface'
+                                                                                 ),
+                                                                                 'supervisorctl' => array(
+                                                                                     'serverurl' => sprintf('unix://%s', $this->paths['sock_file'])
+                                                                                 ),
+                                                                                 'include' => array(
+                                                                                     'files' => sprintf('%s*.conf', $this->paths['worker_configuration_directory'])
+                                                                                 )
+                                                                             ));
         file_put_contents(
             $this->createSupervisorConfigurationFilePath(),
             $content
@@ -345,6 +375,8 @@ class RabbitMqSupervisor
             $debug = $this->getConsumerOption($name, 'debug');
             if (!empty($debug)) {
                 $flags['debug'] = '--debug';
+            } else {
+                $flags['debug'] = '--no-debug';
             }
 
             //rabbitmq:rpc-server does not support options below
@@ -362,21 +394,26 @@ class RabbitMqSupervisor
 
             $command = sprintf('%s %s %s', $commandName, $name, implode(' ', $flags));
 
+            $conf = array(
+                'command' => sprintf('%s %s %s --env=%s', $this->paths['php_executable'], $executablePath, $command, $this->environment),
+                'process_name' => '%(program_name)s%(process_num)02d',
+                'numprocs' => (int) (null === $this->numprocOverride ? $this->getConsumerWorkerOption($name, 'count') : $this->numprocOverride),
+                'startsecs' => $this->getConsumerWorkerOption($name, 'startsecs'),
+                'autorestart' => $this->transformBoolToString($this->getConsumerWorkerOption($name, 'autorestart')),
+                'stopsignal' => $this->getConsumerWorkerOption($name, 'stopsignal'),
+                'stopasgroup' => $this->transformBoolToString($this->getConsumerWorkerOption($name, 'stopasgroup')),
+                'stopwaitsecs' => $this->getConsumerWorkerOption($name, 'stopwaitsecs'),
+                'stdout_logfile' => $this->paths['worker_output_log_file'],
+                'stderr_logfile' => $this->paths['worker_error_log_file'],
+            );
+            if (!empty($this->user)) {
+                $conf['user'] = $this->user;
+            }
+
             $this->generateWorkerConfiguration(
                 $name,
                 array(
-                    sprintf('program:%s', $name) => array(
-                        'command' => sprintf('%s %s %s --env=%s', $this->paths['php_executable'], $executablePath, $command, $this->environment),
-                        'process_name' => '%(program_name)s%(process_num)02d',
-                        'numprocs' => (int) $this->getConsumerWorkerOption($name, 'count'),
-                        'startsecs' => $this->getConsumerWorkerOption($name, 'startsecs'),
-                        'autorestart' => $this->transformBoolToString($this->getConsumerWorkerOption($name, 'autorestart')),
-                        'stopsignal' => $this->getConsumerWorkerOption($name, 'stopsignal'),
-                        'stopasgroup' => $this->transformBoolToString($this->getConsumerWorkerOption($name, 'stopasgroup')),
-                        'stopwaitsecs' => $this->getConsumerWorkerOption($name, 'stopwaitsecs'),
-                        'stdout_logfile' => $this->paths['worker_output_log_file'],
-                        'stderr_logfile' => $this->paths['worker_error_log_file']
-                    )
+                    sprintf('program:%s', $name) => $conf,
                 )
             );
         }
