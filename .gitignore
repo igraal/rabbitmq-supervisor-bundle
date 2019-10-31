@@ -15,3 +15,5 @@ composer.lock
 .composer/
 
 .php_cs.cache
+
+.idea/

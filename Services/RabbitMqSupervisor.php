@@ -67,6 +67,9 @@ class RabbitMqSupervisor
     /** @var bool */
     private $noDaemon;
 
+    /** @var int|null */
+    private $numprocOverride;
+
     /**
      * Initialize Handler
      *
@@ -80,8 +83,9 @@ class RabbitMqSupervisor
      * @param array $config
      * @param string $kernelRootDir
      * @param string $environment
+     * @param int|null $numprocOverride
      */
-    public function __construct(Supervisor $supervisor, array $paths, array $commands, $consumers, $multipleConsumers, $batchConsumers, $rpcServers, $config, $kernelRootDir, $environment)
+    public function __construct(Supervisor $supervisor, array $paths, array $commands, $consumers, $multipleConsumers, $batchConsumers, $rpcServers, $config, $kernelRootDir, $environment, $numprocOverride = null)
     {
         $this->supervisor = $supervisor;
         $this->paths = $paths;
@@ -93,6 +97,7 @@ class RabbitMqSupervisor
         $this->config = $config;
         $this->rootDir = dirname($kernelRootDir);
         $this->environment = $environment;
+        $this->numprocOverride = $numprocOverride;
     }
 
     /**
@@ -370,6 +375,8 @@ class RabbitMqSupervisor
             $debug = $this->getConsumerOption($name, 'debug');
             if (!empty($debug)) {
                 $flags['debug'] = '--debug';
+            } else {
+                $flags['debug'] = '--no-debug';
             }
 
             //rabbitmq:rpc-server does not support options below
@@ -390,7 +397,7 @@ class RabbitMqSupervisor
             $conf = array(
                 'command' => sprintf('%s %s %s --env=%s', $this->paths['php_executable'], $executablePath, $command, $this->environment),
                 'process_name' => '%(program_name)s%(process_num)02d',
-                'numprocs' => (int) $this->getConsumerWorkerOption($name, 'count'),
+                'numprocs' => (int) (null === $this->numprocOverride ? $this->getConsumerWorkerOption($name, 'count') : $this->numprocOverride),
                 'startsecs' => $this->getConsumerWorkerOption($name, 'startsecs'),
                 'autorestart' => $this->transformBoolToString($this->getConsumerWorkerOption($name, 'autorestart')),
                 'stopsignal' => $this->getConsumerWorkerOption($name, 'stopsignal'),
