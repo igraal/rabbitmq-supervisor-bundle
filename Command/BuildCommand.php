@@ -28,5 +28,7 @@ class BuildCommand extends AbstractRabbitMqSupervisorAwareCommand
             $this->getContainer()->getParameter('kernel.environment') === 'dev'
         );
         $this->rabbitMqSupervisor->build();
+        
+        return 0;
     }
 }

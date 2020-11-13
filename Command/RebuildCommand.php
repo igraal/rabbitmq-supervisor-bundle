@@ -28,5 +28,7 @@ class RebuildCommand extends AbstractRabbitMqSupervisorAwareCommand
             $this->getContainer()->getParameter('kernel.environment') === 'dev'
         );
         $this->rabbitMqSupervisor->rebuild();
+        
+        return 0;
     }
 }
