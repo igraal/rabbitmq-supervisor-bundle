@@ -34,6 +34,7 @@ services:
         class: Phobetor\RabbitMqSupervisorBundle\Command\BuildCommand
         arguments:
             - '@phobetor_rabbitmq_supervisor'
+            - '%kernel.environment%'
         tags:
             - { name: 'console.command', command: 'rabbitmq-supervisor:build' }
 
@@ -62,6 +63,7 @@ services:
         class: Phobetor\RabbitMqSupervisorBundle\Command\RebuildCommand
         arguments:
             - '@phobetor_rabbitmq_supervisor'
+            - '%kernel.environment%'
         tags:
             - { name: 'console.command', command: 'rabbitmq-supervisor:rebuild' }
 

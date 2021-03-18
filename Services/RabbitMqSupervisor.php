@@ -407,36 +407,25 @@ class RabbitMqSupervisor
 
             $command = sprintf('%s %s %s', $commandName, $name, implode(' ', $flags));
 
-<<<<<<< HEAD
-            $conf = array(
-=======
             $programOptions = array(
->>>>>>> a9696d1... cleanup: move program options to variable to allow merging [1]
                 'command' => sprintf('%s %s %s --env=%s', $this->paths['php_executable'], $executablePath, $command, $this->environment),
                 'process_name' => '%(program_name)s%(process_num)02d',
                 'numprocs' =>  null === $this->numprocOverride ? (int) $this->getConsumerWorkerOption($name, 'count') : $this->numprocOverride,
                 'startsecs' => $this->getConsumerWorkerOption($name, 'startsecs'),
                 'startretries' => $this->getConsumerWorkerOption($name, 'startretries'),
-                 'autorestart' => $this->transformBoolToString($this->getConsumerWorkerOption($name, 'autorestart')),
+                'autorestart' => $this->transformBoolToString($this->getConsumerWorkerOption($name, 'autorestart')),
                 'stopsignal' => $this->getConsumerWorkerOption($name, 'stopsignal'),
                 'stopasgroup' => $this->transformBoolToString($this->getConsumerWorkerOption($name, 'stopasgroup')),
                 'stopwaitsecs' => $this->getConsumerWorkerOption($name, 'stopwaitsecs'),
                 'stdout_logfile' => $this->paths['worker_output_log_file'],
-<<<<<<< HEAD
                 'stderr_logfile' => $this->paths['worker_error_log_file'],
             );
-            if (!empty($this->user)) {
-                $conf['user'] = $this->user;
-            }
 
             if ($this->getGeneralConsumerWorkerOption('user')) {
                 $programOptions['user'] = $this->getGeneralConsumerWorkerOption('user');
+            }elseif (!empty($this->user)) {
+                $programOptions['user'] = $this->user;
             }
-
-=======
-                'stderr_logfile' => $this->paths['worker_error_log_file']
-            );
->>>>>>> a9696d1... cleanup: move program options to variable to allow merging [1]
 
             $this->generateWorkerConfiguration(
                 $name,
