@@ -62,6 +62,11 @@ class RabbitMqSupervisor
     /**
      * @var string
      */
+    private $sockFilePermissions;
+
+    /**
+     * @var string
+     */
     private $user;
 
     /** @var bool */
@@ -81,11 +86,12 @@ class RabbitMqSupervisor
      * @param array $batchConsumers
      * @param array $rpcServers
      * @param array $config
+     * @param $sockFilePermissions
      * @param string $kernelRootDir
      * @param string $environment
      * @param int|null $numprocOverride
      */
-    public function __construct(Supervisor $supervisor, array $paths, array $commands, $consumers, $multipleConsumers, $batchConsumers, $rpcServers, $config, $kernelRootDir, $environment, $numprocOverride = null)
+    public function __construct(Supervisor $supervisor, array $paths, array $commands, $consumers, $multipleConsumers, $batchConsumers, $rpcServers, $config, $sockFilePermissions, $kernelRootDir, $environment, $numprocOverride = null)
     {
         $this->supervisor = $supervisor;
         $this->paths = $paths;
@@ -95,6 +101,7 @@ class RabbitMqSupervisor
         $this->batchConsumers = $batchConsumers;
         $this->rpcServers = $rpcServers;
         $this->config = $config;
+        $this->sockFilePermissions = $sockFilePermissions;
         $this->rootDir = dirname($kernelRootDir);
         $this->environment = $environment;
 
@@ -296,7 +303,11 @@ class RabbitMqSupervisor
 
     private function createPathDirectories()
     {
-        foreach ($this->paths as $path) {
+        foreach ($this->paths as $key => $path) {
+            if ('php_executable' === $key) {
+                continue;
+            }
+
             if ('/' !== substr($path, -1, 1)) {
                 $path = dirname($path);
             }
@@ -313,7 +324,7 @@ class RabbitMqSupervisor
         $content = $configurationHelper->getConfigurationStringFromDataArray(array(
             'unix_http_server' => array(
                 'file' => $this->paths['sock_file'],
-                'chmod' => '0700'
+                'chmod' => $this->sockFilePermissions
             ),
             'supervisord' => array(
                 'logfile' => $this->paths['log_file'],
@@ -396,11 +407,12 @@ class RabbitMqSupervisor
 
             $command = sprintf('%s %s %s', $commandName, $name, implode(' ', $flags));
 
-            $conf = array(
+            $programOptions = array(
                 'command' => sprintf('%s %s %s --env=%s', $this->paths['php_executable'], $executablePath, $command, $this->environment),
                 'process_name' => '%(program_name)s%(process_num)02d',
                 'numprocs' =>  null === $this->numprocOverride ? (int) $this->getConsumerWorkerOption($name, 'count') : $this->numprocOverride,
                 'startsecs' => $this->getConsumerWorkerOption($name, 'startsecs'),
+                'startretries' => $this->getConsumerWorkerOption($name, 'startretries'),
                 'autorestart' => $this->transformBoolToString($this->getConsumerWorkerOption($name, 'autorestart')),
                 'stopsignal' => $this->getConsumerWorkerOption($name, 'stopsignal'),
                 'stopasgroup' => $this->transformBoolToString($this->getConsumerWorkerOption($name, 'stopasgroup')),
@@ -408,15 +420,16 @@ class RabbitMqSupervisor
                 'stdout_logfile' => $this->paths['worker_output_log_file'],
                 'stderr_logfile' => $this->paths['worker_error_log_file'],
             );
-            if (!empty($this->user)) {
-                $conf['user'] = $this->user;
+
+            if ($this->getGeneralConsumerWorkerOption('user')) {
+                $programOptions['user'] = $this->getGeneralConsumerWorkerOption('user');
+            }elseif (!empty($this->user)) {
+                $programOptions['user'] = $this->user;
             }
 
             $this->generateWorkerConfiguration(
                 $name,
-                array(
-                    sprintf('program:%s', $name) => $conf,
-                )
+                array(sprintf('program:%s', $name) => $programOptions)
             );
         }
     }
